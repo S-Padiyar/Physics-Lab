@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Car Catching Projectile Timing Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .calculator {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .results {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f1f3f5;
+      border-radius: 8px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Car Catching Projectile Timing Calculator</h1>
+  <div class="calculator">
+    <label for="car">Choose Car:</label>
+    <select id="car"></select>
+
+    <label for="launcher">Choose Launcher:</label>
+    <select id="launcher"></select>
+
+    <label for="distance">Starting Distance from Car to Launcher (m):</label>
+    <input type="number" id="distance" placeholder="Enter distance in meters" step="0.01">
+
+    <button onclick="calculate()">Calculate Timing</button>
+
+    <div class="results" id="results"></div>
+  </div>
+
+  <script>
+    const carVelocities = {
+      "1": 0.197,
+      "2": 0.231,
+      "3": 0.283,
+      "4": 0.286,
+      "5": 0.262,
+      "6": 0.376,
+      "7": 0.244,
+      "8": 0.306,
+      "9": 0.301,
+      "10": 0.285,
+      "MIKEY": 0.44
+    };
+
+    const launcherData = {
+      "2": { range: 1.3975, time: 1.03025 },
+      "3": { range: 1.6067, time: 1.0423 }
+    };
+
+    // Populate dropdowns
+    const carSelect = document.getElementById("car");
+    for (let car in carVelocities) {
+      let opt = document.createElement("option");
+      opt.value = car;
+      opt.textContent = car;
+      carSelect.appendChild(opt);
+    }
+
+    const launcherSelect = document.getElementById("launcher");
+    for (let l in launcherData) {
+      let opt = document.createElement("option");
+      opt.value = l;
+      opt.textContent = l;
+      launcherSelect.appendChild(opt);
+    }
+
+    function calculate() {
+      const carChoice = document.getElementById("car").value;
+      const launcherChoice = document.getElementById("launcher").value;
+      const distance = parseFloat(document.getElementById("distance").value);
+      const resultsDiv = document.getElementById("results");
+
+      if (!carChoice || !launcherChoice || isNaN(distance)) {
+        resultsDiv.innerHTML = "Please select a car, a launcher, and enter a valid distance.";
+        return;
+      }
+
+      const carVelocity = carVelocities[carChoice];
+      const projectileRange = launcherData[launcherChoice].range;
+      const projectileTime = launcherData[launcherChoice].time;
+
+      // Time for car to travel from start to landing spot (distance + range)
+      const totalTravel = distance + projectileRange;
+      const carTravelTime = totalTravel / carVelocity;
+      const delay = carTravelTime - projectileTime;
+      const carPositionAtLaunch = carVelocity * delay;
+
+      let output = `<b>Results:</b><br>`;
+      output += `Car velocity: ${carVelocity.toFixed(3)} m/s<br>`;
+      output += `Starting distance: ${distance.toFixed(3)} m<br>`;
+      output += `Projectile range: ${projectileRange.toFixed(3)} m<br>`;
+      output += `Projectile flight time: ${projectileTime.toFixed(3)} s<br>`;
+      output += `Time for car to reach landing spot: ${carTravelTime.toFixed(3)} s<br><br>`;
+
+      if (delay >= 0) {
+        output += `Start the car now. Wait <b>${delay.toFixed(3)} s</b> and FIRE.<br>`;
+        output += `Car position when you should fire: <b>${carPositionAtLaunch.toFixed(3)} m</b> from the start.<br>`;
+        output += `Projectile lands in the car at <b>t = ${(delay + projectileTime).toFixed(3)} s</b>.`;
+      } else {
+        output += `The car arrives too early by <b>${(-delay).toFixed(3)} s</b>.<br>`;
+        output += `FIRE immediately (delay = 0 s) and adjust car speed or start later.`;
+      }
+
+      resultsDiv.innerHTML = output;
+    }
+  </script>
+</body>
+</html>
