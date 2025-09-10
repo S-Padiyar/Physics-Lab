@@ -5,66 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Car Catching Projectile Timing Calculator</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f8f9fa;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .calculator {
-      max-width: 500px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    label {
-      display: block;
-      margin-top: 12px;
-      font-weight: bold;
-    }
-    select, input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 6px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .results {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f1f3f5;
-      border-radius: 8px;
-      font-family: monospace;
-    }
+    body { font-family: Arial, sans-serif; background: #f8f9fa; padding: 20px; }
+    h1 { text-align: center; }
+    .calculator { max-width: 640px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    select, input, button { width: 100%; padding: 10px; margin-top: 6px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+    .note { font-size: 13px; color: #333; margin-top: 6px; }
+    button { background: #007bff; color: white; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0056b3; }
+    .results { margin-top: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px; font-family: monospace; white-space: pre-line; }
   </style>
 </head>
 <body>
   <h1>Car Catching Projectile Timing Calculator</h1>
   <div class="calculator">
-    <label for="car">Choose Car:</label>
+    <label for="car">Choose car</label>
     <select id="car"></select>
 
-    <label for="launcher">Choose Launcher:</label>
+    <label for="launcher">Choose launcher</label>
     <select id="launcher"></select>
 
-    <label for="distance">Distance from Car to Launcher (m):</label>
-    <input type="number" id="distance" placeholder="Enter distance in meters" step="0.01">
+    <label for="distance">Distance (m) — car to launcher (must be less than projectile range)</label>
+    <input type="number" id="distance" placeholder="Enter distance in meters" step="0.01" value="1.00">
 
-    <button onclick="calculate()">Calculate Timing</button>
+    <div class="note">Note: The car is always assumed to be between the launcher and the landing spot.</div>
+
+    <button onclick="calculate()">Calculate timing</button>
 
     <div class="results" id="results"></div>
   </div>
@@ -89,68 +55,71 @@
       "3": { range: 1.6067, time: 1.0423 }
     };
 
-    // Populate dropdowns
-    const carSelect = document.getElementById("car");
-    for (let car in carVelocities) {
-      let opt = document.createElement("option");
-      opt.value = car;
-      opt.textContent = car;
-      carSelect.appendChild(opt);
+    // populate selects
+    const carSelect = document.getElementById('car');
+    for (const k in carVelocities) {
+      const o = document.createElement('option'); o.value = k; o.textContent = k; carSelect.appendChild(o);
     }
-
-    const launcherSelect = document.getElementById("launcher");
-    for (let l in launcherData) {
-      let opt = document.createElement("option");
-      opt.value = l;
-      opt.textContent = l;
-      launcherSelect.appendChild(opt);
+    const launcherSelect = document.getElementById('launcher');
+    for (const k in launcherData) {
+      const o = document.createElement('option'); o.value = k; o.textContent = k; launcherSelect.appendChild(o);
     }
 
     function calculate() {
-      const carChoice = document.getElementById("car").value;
-      const launcherChoice = document.getElementById("launcher").value;
-      const distance = parseFloat(document.getElementById("distance").value);
-      const resultsDiv = document.getElementById("results");
+      const carKey = carSelect.value;
+      const launcherKey = launcherSelect.value;
+      const distance = parseFloat(document.getElementById('distance').value);
+      const out = document.getElementById('results');
 
-      if (!carChoice || !launcherChoice || isNaN(distance)) {
-        resultsDiv.innerHTML = "Please select a car, a launcher, and enter a valid distance.";
+      if (!carKey || !launcherKey || isNaN(distance) || distance < 0) {
+        out.textContent = 'Please select car, launcher and enter a valid non-negative distance.'; return;
+      }
+
+      const v = carVelocities[carKey];
+      const R = launcherData[launcherKey].range; // landing spot is at x = +R (launcher at x = 0)
+      const Tproj = launcherData[launcherKey].time; // projectile flight time
+
+      if (distance >= R) {
+        out.textContent = `Invalid input: Car distance (${distance.toFixed(3)} m) must be less than projectile range (${R.toFixed(3)} m).`;
         return;
       }
 
-      const carVelocity = carVelocities[carChoice];
-      const projectileRange = launcherData[launcherChoice].range;
-      const projectileTime = launcherData[launcherChoice].time;
+      // Car starts between launcher and landing spot
+      const x0 = distance;
+      const xLand = R;
+      const travelNeeded = xLand - x0;
 
-      // The landing point is at 'projectileRange' in front of the launcher.
-      // If the car starts 'distance' away from the launcher, it only needs to travel (projectileRange - distance).
-      const travelNeeded = projectileRange - distance;
-      if (travelNeeded <= 0) {
-        resultsDiv.innerHTML = "The car starts beyond or at the landing spot. Adjust distance.";
-        return;
-      }
+      const carTravelTime = travelNeeded / v;
+      const delay = carTravelTime - Tproj;
 
-      const carTravelTime = travelNeeded / carVelocity;
-      const delay = carTravelTime - projectileTime;
-      const carPositionAtLaunch = distance + carVelocity * delay;
-
-      let output = `<b>Results:</b><br>`;
-      output += `Car velocity: ${carVelocity.toFixed(3)} m/s<br>`;
-      output += `Starting distance from launcher: ${distance.toFixed(3)} m<br>`;
-      output += `Projectile range: ${projectileRange.toFixed(3)} m<br>`;
-      output += `Projectile flight time: ${projectileTime.toFixed(3)} s<br>`;
-      output += `Car needs to travel: ${travelNeeded.toFixed(3)} m<br>`;
-      output += `Time for car to reach landing spot: ${carTravelTime.toFixed(3)} s<br><br>`;
-
+      let recommendedDelay = delay;
+      let recommendedAction = '';
       if (delay >= 0) {
-        output += `Start the car now. Wait <b>${delay.toFixed(3)} s</b> and FIRE.<br>`;
-        output += `Car position when you should fire: <b>${carPositionAtLaunch.toFixed(3)} m</b> from the launcher.<br>`;
-        output += `Projectile lands in the car at <b>t = ${(delay + projectileTime).toFixed(3)} s</b>.`;
+        recommendedAction = `Start the car now. Wait ${delay.toFixed(3)} s and fire.`;
       } else {
-        output += `The car arrives too early by <b>${(-delay).toFixed(3)} s</b>.<br>`;
-        output += `FIRE immediately (delay = 0 s) and adjust car speed or start later.`;
+        recommendedAction = `Car would arrive ${(-delay).toFixed(3)} s earlier than the projectile. Fire immediately (delay = 0 s), or slow/start the car later to sync.`;
+        recommendedDelay = 0;
       }
 
-      resultsDiv.innerHTML = output;
+      const carPositionAtFire = x0 + v * recommendedDelay;
+      const t_land = recommendedDelay + Tproj;
+      const carPosAtLanding = x0 + v * t_land;
+
+      let s = '';
+      s += `Results:\n`;
+      s += `Car velocity: ${v.toFixed(3)} m/s\n`;
+      s += `Starting distance (car to launcher): ${distance.toFixed(3)} m\n`;
+      s += `Launcher -> landing spot (range): ${R.toFixed(3)} m\n`;
+      s += `Projectile flight time: ${Tproj.toFixed(3)} s\n`;
+      s += `Car start position (relative to launcher): ${x0.toFixed(3)} m\n`;
+      s += `Distance car must travel to landing spot: ${travelNeeded.toFixed(3)} m\n`;
+      s += `Time for car to reach landing spot: ${carTravelTime.toFixed(3)} s\n\n`;
+
+      s += `${recommendedAction}\n`;
+      s += `Car position when you should fire: ${carPositionAtFire.toFixed(3)} m (measured from launcher)\n`;
+      s += `Projectile lands at t = ${t_land.toFixed(3)} s, car will be at: ${carPosAtLanding.toFixed(3)} m (should equal landing spot ${xLand.toFixed(3)} m)\n`;
+
+      out.textContent = s;
     }
   </script>
 </body>
