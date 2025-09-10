@@ -61,7 +61,7 @@
     <label for="launcher">Choose Launcher:</label>
     <select id="launcher"></select>
 
-    <label for="distance">Starting Distance from Car to Launcher (m):</label>
+    <label for="distance">Distance from Car to Launcher (m):</label>
     <input type="number" id="distance" placeholder="Enter distance in meters" step="0.01">
 
     <button onclick="calculate()">Calculate Timing</button>
@@ -121,22 +121,29 @@
       const projectileRange = launcherData[launcherChoice].range;
       const projectileTime = launcherData[launcherChoice].time;
 
-      // Time for car to travel from start to landing spot (distance + range)
-      const totalTravel = distance + projectileRange;
-      const carTravelTime = totalTravel / carVelocity;
+      // The landing point is at 'projectileRange' in front of the launcher.
+      // If the car starts 'distance' away from the launcher, it only needs to travel (projectileRange - distance).
+      const travelNeeded = projectileRange - distance;
+      if (travelNeeded <= 0) {
+        resultsDiv.innerHTML = "The car starts beyond or at the landing spot. Adjust distance.";
+        return;
+      }
+
+      const carTravelTime = travelNeeded / carVelocity;
       const delay = carTravelTime - projectileTime;
-      const carPositionAtLaunch = carVelocity * delay;
+      const carPositionAtLaunch = distance + carVelocity * delay;
 
       let output = `<b>Results:</b><br>`;
       output += `Car velocity: ${carVelocity.toFixed(3)} m/s<br>`;
-      output += `Starting distance: ${distance.toFixed(3)} m<br>`;
+      output += `Starting distance from launcher: ${distance.toFixed(3)} m<br>`;
       output += `Projectile range: ${projectileRange.toFixed(3)} m<br>`;
       output += `Projectile flight time: ${projectileTime.toFixed(3)} s<br>`;
+      output += `Car needs to travel: ${travelNeeded.toFixed(3)} m<br>`;
       output += `Time for car to reach landing spot: ${carTravelTime.toFixed(3)} s<br><br>`;
 
       if (delay >= 0) {
         output += `Start the car now. Wait <b>${delay.toFixed(3)} s</b> and FIRE.<br>`;
-        output += `Car position when you should fire: <b>${carPositionAtLaunch.toFixed(3)} m</b> from the start.<br>`;
+        output += `Car position when you should fire: <b>${carPositionAtLaunch.toFixed(3)} m</b> from the launcher.<br>`;
         output += `Projectile lands in the car at <b>t = ${(delay + projectileTime).toFixed(3)} s</b>.`;
       } else {
         output += `The car arrives too early by <b>${(-delay).toFixed(3)} s</b>.<br>`;
