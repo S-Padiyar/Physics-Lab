@@ -14,6 +14,8 @@
     button { background: #007bff; color: white; cursor: pointer; font-weight: bold; }
     button:hover { background: #0056b3; }
     .results { margin-top: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px; font-family: monospace; white-space: pre-line; }
+    .highlight { color: green; font-weight: bold; }
+    .warning { margin-top: 12px; color: red; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -77,50 +79,46 @@
       }
 
       const v = carVelocities[carKey];
-      const R = launcherData[launcherKey].range; // landing spot is at x = +R (launcher at x = 0)
-      const Tproj = launcherData[launcherKey].time; // projectile flight time
+      const R = launcherData[launcherKey].range;
+      const Tproj = launcherData[launcherKey].time;
 
       if (distance >= R) {
         out.textContent = `Invalid input: Car distance (${distance.toFixed(3)} m) must be less than projectile range (${R.toFixed(3)} m).`;
         return;
       }
 
-      // Car starts between launcher and landing spot
       const x0 = distance;
-      const xLand = R;
-      const travelNeeded = xLand - x0;
+      const travelNeeded = R - x0;
 
       const carTravelTime = travelNeeded / v;
-      const delay = carTravelTime - Tproj;
+      let delay = carTravelTime - Tproj;
 
-      let recommendedDelay = delay;
-      let recommendedAction = '';
-      if (delay >= 0) {
-        recommendedAction = `Start the car now. Wait ${delay.toFixed(3)} s and fire.`;
-      } else {
-        recommendedAction = `Car would arrive ${(-delay).toFixed(3)} s earlier than the projectile. Fire immediately (delay = 0 s), or slow/start the car later to sync.`;
-        recommendedDelay = 0;
-      }
+      // Adjust delay instead of flight time
+      let adjustmentNote = "";
+      if (launcherKey === "2") { delay -= 0.5; adjustmentNote = "Launcher 2 undershoot → subtracted 0.5s from delay"; }
+      if (launcherKey === "3") { delay += 0.5; adjustmentNote = "Launcher 3 overshoot → added 0.5s to delay"; }
+      if (launcherKey === "1") { adjustmentNote = "Launcher 1 baseline, no adjustment."; }
 
-      const carPositionAtFire = x0 + v * recommendedDelay;
+      let recommendedDelay = delay >= 0 ? delay : 0;
       const t_land = recommendedDelay + Tproj;
+      const carPosAtFire = x0 + v * recommendedDelay;
       const carPosAtLanding = x0 + v * t_land;
 
       let s = '';
-      s += `Results:\n`;
+      s += `Equation: delay = (R - x0)/v - T_proj (then adjust based on overshoot/undershoot)\n\n`;
       s += `Car velocity: ${v.toFixed(3)} m/s\n`;
-      s += `Starting distance (car to launcher): ${distance.toFixed(3)} m\n`;
-      s += `Launcher -> landing spot (range): ${R.toFixed(3)} m\n`;
+      s += `Distance to launcher: ${distance.toFixed(3)} m\n`;
+      s += `Projectile range: ${R.toFixed(3)} m\n`;
       s += `Projectile flight time: ${Tproj.toFixed(3)} s\n`;
-      s += `Car start position (relative to launcher): ${x0.toFixed(3)} m\n`;
-      s += `Distance car must travel to landing spot: ${travelNeeded.toFixed(3)} m\n`;
-      s += `Time for car to reach landing spot: ${carTravelTime.toFixed(3)} s\n\n`;
+      s += `${adjustmentNote}\n\n`;
 
-      s += `${recommendedAction}\n`;
-      s += `Car position when you should fire: ${carPositionAtFire.toFixed(3)} m (measured from launcher)\n`;
-      s += `Projectile lands at t = ${t_land.toFixed(3)} s, car will be at: ${carPosAtLanding.toFixed(3)} m (should equal landing spot ${xLand.toFixed(3)} m)\n`;
+      s += `<span class="highlight">Fire delay: ${recommendedDelay.toFixed(3)} s</span>\n`;
+      s += `<span class="highlight">Car position to fire: ${carPosAtFire.toFixed(3)} m</span>\n`;
+      s += `At landing t=${t_land.toFixed(3)} s → Car at ${carPosAtLanding.toFixed(3)} m, Spot at ${R.toFixed(3)} m\n\n`;
 
-      out.textContent = s;
+      s += `<div class="warning">⚠ Use intuition after the first launch, data WILL NOT BE ACCURATE AS BATTERIES HAVE PROLLY RUN OUT.</div>`;
+
+      out.innerHTML = s;
     }
   </script>
 </body>
